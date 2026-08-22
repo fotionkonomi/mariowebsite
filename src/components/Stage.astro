@@ -7,12 +7,13 @@
     acc   how far in we are, in "units". 0 = krater centred and
           auto-rotating. 0→1 = krater slides left, rail slides in.
           Above 1, each whole unit advances one project. Floored at
-          0, never capped above — so N passes down costs N passes up,
-          which is the symmetric unwind, for free.
+          0. Going back up collapses to the matching position in the
+          FIRST cycle, so the way out is one pass through the projects
+          however many times you went round.
 
-    spin  only ever increases, by the ABSOLUTE change in acc. That is
-          what makes the krater turn the same direction whether you
-          scroll up or down.
+    spin  tracks the SIGNED change in acc. That is
+          what makes the krater turn one way when you scroll down and
+          the opposite way when you scroll up.
 
   The page itself never scrolls in pinned mode (body overflow hidden),
   so there is no native scroll to fight.
@@ -175,7 +176,7 @@ const panels = [
 
     /* --- state ------------------------------------------------- */
     let acc = 0, accS = 0;     // target and smoothed
-    let spin = 0, spinS = 0;   // monotonic rotation
+    let spin = 0, spinS = 0;   // signed rotation
     let autoAt = 0, autoFrame = 0;
     let shownFrame = -1;
     let railH = stage.clientHeight;
@@ -206,8 +207,19 @@ const panels = [
     };
 
     const push = (dUnits: number) => {
+      // Heading back up from deep in the loop? Collapse to the matching
+      // position in the first cycle so the way out is a single pass. The
+      // amount removed is always a whole number of cycles, and pan is taken
+      // mod count, so this is visually identical — nothing jumps. accS moves
+      // with it to keep the smoothed value in step; spin is left alone
+      // because this is bookkeeping, not something the user scrolled.
+      if (dUnits < 0 && acc > ENTER + count) {
+        const collapsed = ENTER + ((acc - ENTER) % count);
+        accS -= acc - collapsed;
+        acc = collapsed;
+      }
       const next = Math.max(0, acc + dUnits);
-      spin += Math.abs(next - acc);   // absolute → always turns one way
+      spin += next - acc;   // signed → down and up turn opposite ways
       acc = next;
       // No frames arriving (background tab, low-power mode)? There is no
       // smoothing to wait for, so land on the target and paint now.

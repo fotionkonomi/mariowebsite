@@ -99,10 +99,9 @@ Two counters drive all of it:
   whole unit advances one project. Floored at zero, never capped above, which is
   what makes the unwind symmetric: N passes down costs exactly N passes up
   (verified: 88 notches down took 88 notches to reverse).
-- **`spin`** — only ever *increases*, by the **absolute** change in `acc`. That
-  is why the krater keeps turning the same direction whether you scroll up or
-  down. One full 40-frame revolution per project, so the rotation *is* the
-  progress bar.
+- **`spin`** — tracks the **signed** change in `acc`, so the krater turns one
+  way as you scroll down and the opposite way as you scroll back up. One full
+  40-frame revolution per project, so the rotation *is* the progress bar.
 
 The rail renders the project list **twice**. At the wrap point both copies show
 identical content, so jumping from the last project back to the first is
@@ -114,13 +113,21 @@ the whole `transform` declaration and it collapses to `none`, so the vars must
 be set before the first frame and must not depend on rAF running. Background
 tabs and low-power mode throttle rAF to zero.
 
-**The krater has no circle, no border and no clipping.** The frames carry a
-solid mid-grey studio backdrop, so two things remove it without leaving a grey
-box: a feathered mask, and `filter: contrast(1.32) brightness(0.92)` which sinks
-the backdrop (measured ~50/255) toward the page ground while leaving the bronze
-highlights above 185. The mask is generous horizontally and gentle vertically
-because the object was measured as spanning **y 1%–99.7%** and **x 19%–78%** —
-a symmetric radial mask would cut the handles off.
+**The krater has no circle, no border, no clipping — and no colour grading.**
+There is deliberately **no `filter`** on it: an earlier version used
+`contrast()/brightness()` to sink the frames' mid-grey studio backdrop, and it
+made the bronze read as too dark. Do not reintroduce it.
+
+The backdrop is removed by mask shape alone. The object was measured across
+several rotations as spanning **x 19%–78%** and **y 1%–99.7%** — it touches top
+and bottom but leaves ~19% of bare backdrop on each side. So the mask is an
+ellipse with a 50% x-radius (opaque to 60%, giving 30% of solid coverage where
+the object needs 29.5%) and an 82% y-radius, which stays opaque through the
+vertical centre so the handles and foot are never clipped, while the left and
+right edges and all four corners fall past the gradient and dissolve entirely.
+A symmetric radial mask would decapitate the handles; a rectangular feather
+leaves visible box edges. Behind it sits a soft two-layer pool of light so any
+surviving grey reads as a lit vitrine rather than the edge of a rectangle.
 
 To regenerate the frames (or add a turntable for another project):
 
