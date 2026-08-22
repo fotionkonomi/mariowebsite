@@ -140,6 +140,35 @@ node -e "import('sharp').then(async ({default:sharp}) => {
 })"
 ```
 
+**Entered framing.** Once the krater has travelled left it is scaled to **250%**
+with its centre on the left viewport edge, so exactly half of it bleeds off the
+left. `-50vw` is what puts the centre at `x: 0`; `scale()` expands about the
+centre, so that framing holds at any scale. It is then nudged **7% right and
+7% down**, measured against the krater at its *enlarged* size, which brings the
+visible fraction to **57%**. (15% was tried first and read as too far right and
+too low.)
+
+`--nudge-x` / `--nudge-y` are **17.5%**, not 7%, because `translate()`
+percentages resolve against the *unscaled* box: 7% of the enlarged size is
+7% x 2.5. Keeping them as percentages rather than px or vw means the offset
+stays proportional to the krater at every viewport size. Translations all
+contribute additively to the final centre and `scale()` contributes none, so the
+order among the translate steps does not matter.
+
+Verified at 1440x900: enlarged 1395px, centre moved exactly 98px right and 98px
+down (7% of 1395), fraction visible 0.570, at-rest state untouched, and fully
+reversible back to centre. Note the frames are natively **702px**, so at this size they are
+upscaled ~2x and are visibly soft — that is a source-resolution limit, not a
+bug, and 702 is the largest ArtStation serves for that asset.
+
+At this scale the krater can reach under the rail — zero overlap at 1440px wide
+with the 7% nudge, but 246px at 980px, and it grows quickly if the nudge or the
+scale is increased — so the rail sits **above** it (z-index 3 vs 2) and a
+scrim on `.stage-rail::before` sits **behind the panels** (z-index 0 vs the
+track's 1). It darkens the krater passing through without dimming the panel
+text, and the krater appears to dissolve into the rail's left edge. Increase the
+scale or the nudge further and this scrim is what keeps the copy legible.
+
 **The pinned stage is opt-in.** Everything in the CSS is written as a plain
 vertical stack that scrolls natively; JS adds `data-stage-ready` to `<html>`
 only on a wide viewport with a fine pointer and motion allowed, and every pinned

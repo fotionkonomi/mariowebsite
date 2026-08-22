@@ -283,15 +283,31 @@ html[data-stage-ready] .stage-intro {
 html[data-stage-ready] .stage-intro .display { font-size: clamp(1.6rem, 3.3vw, 2.9rem); }
 html[data-stage-ready] .stage-intro p { display: none; }
 html[data-stage-ready] .stage-krater {
-  /* --shift lands the krater centred in the space left of the rail,
-     rather than pushing it off the viewport edge. */
-  --shift: -21vw;
+  /* Entered state: 250% scale with the krater's CENTRE landing on the left
+     viewport edge, so exactly half of it is visible bleeding off the left.
+     -50vw is what puts the centre at x=0; scale expands about the centre, so
+     the half-visible framing holds at any scale. The vertical shift moves the
+     centre from 62% (below the headline, at rest) to 50% so the overflow
+     top and bottom is symmetric. */
+  --shift: -50vw;
+  --scale-in: 1.5;   /* 1 + 1.5 = 250% when fully entered */
+  /* Nudge from that half-off-left position: 7% right and 7% down, measured
+     against the krater at its ENLARGED size. translate() percentages resolve
+     against the UNSCALED box, so 7% of the enlarged size is 7% x 2.5 = 17.5%
+     here. Expressing it as a percentage rather than px/vw keeps the offset
+     proportional to the krater at every viewport size. */
+  --nudge-x: 17.5%;
+  --nudge-y: 17.5%;
   position: absolute; z-index: 2;
   top: 62%; left: 50%;
+  /* Translations all contribute additively to the final centre position and
+     scale contributes none, so the order among them does not matter. */
   transform: translate(-50%, -50%)
              translateX(calc(var(--enter) * var(--shift)))
-             translateY(calc(var(--enter) * -6svh))
-             scale(calc(1 + var(--enter) * 0.14));
+             translateY(calc(var(--enter) * -12svh))
+             translate(calc(var(--enter) * var(--nudge-x)),
+                       calc(var(--enter) * var(--nudge-y)))
+             scale(calc(1 + var(--enter) * var(--scale-in)));
   will-change: transform;
 }
 html[data-stage-ready] .krater {
@@ -299,7 +315,7 @@ html[data-stage-ready] .krater {
   height: min(62svh, 620px);
 }
 html[data-stage-ready] .stage-rail {
-  position: absolute; z-index: 1;
+  position: absolute; z-index: 3;
   top: 0; right: 0; bottom: 0;
   width: clamp(360px, 44vw, 720px);
   margin: 0;
@@ -309,6 +325,14 @@ html[data-stage-ready] .stage-rail {
   transform: translateX(calc((1 - var(--enter)) * 5rem));
   will-change: transform, opacity;
 }
+/* Sits BEHIND the panels (z-index 0 vs the track's 1) so it darkens the
+   krater bleeding in from the left without dimming the panel content. */
+html[data-stage-ready] .stage-rail::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(to right, var(--void), rgba(10, 9, 8, 0.6) 14%, transparent 34%);
+}
+html[data-stage-ready] .stage-track { position: relative; z-index: 1; }
+
 /* Fade the rail's top and bottom edges so panels enter and leave
    the viewport instead of being chopped off by the clip. */
 html[data-stage-ready] .stage-rail::after {
