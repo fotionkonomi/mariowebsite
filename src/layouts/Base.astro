@@ -1,0 +1,159 @@
+---
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/hanken-grotesk';
+import '@fontsource/cinzel/600.css';
+import '@fontsource/cinzel/700.css';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { site } from '../site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /* The home page is the pinned stage and has nothing below it. */
+  footer?: boolean;
+}
+const { title, description, footer = true } = Astro.props;
+const fullTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.role}, ${site.location}`;
+const path = Astro.url.pathname;
+const nav = [
+  { href: '/', label: 'Work' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0A0908" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <meta property="og:title" content={fullTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(path, Astro.site)} />
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <div id="cur-dot" aria-hidden="true"></div>
+    <div id="cur-ring" aria-hidden="true"><span>DRAG</span></div>
+
+    <header class="hd">
+      <div class="wrap">
+        <a class="hd-mark" href="/" aria-label={`${site.name} — home`}>M<em>·</em>K</a>
+        <nav class="hd-nav" aria-label="Main">
+          {nav.map((n) => (
+            <a href={n.href} aria-current={path === n.href ? 'page' : undefined}>{n.label}</a>
+          ))}
+        </nav>
+        <span class="hd-meta" data-athens-clock>ATHENS, GR</span>
+      </div>
+    </header>
+
+    <main><slot /></main>
+
+    {footer && (
+      <footer class="ft">
+        <div class="wrap ft-bar">
+          <span class="carve carve--ash">© MMXXVI {site.name}</span>
+          <nav aria-label="Elsewhere">
+            <a href={`mailto:${site.email}`}>Email</a>
+            {site.links.map((l) => <a href={l.href} rel="noopener">{l.label}</a>)}
+            {site.cv && <a href={site.cv}>CV</a>}
+          </nav>
+        </div>
+      </footer>
+    )}
+
+    <script>
+      /* ------------------------------------------------------------------
+         Cursor.
+
+         Module scope persists across view transitions but the <body> does
+         NOT, so state lives here rather than on body.dataset, every init
+         cancels the previous loop and listener, and init re-runs on
+         astro:page-load. Previously it did none of that: the rAF loop kept
+         writing to a detached ring while the live one sat frozen.
+
+         The native pointer is only hidden once this has actually started
+         (html[data-cursor="live"]), so a script failure can never leave
+         the page with no visible cursor at all.
+      ------------------------------------------------------------------ */
+      let curRAF = 0;
+      let curMove: ((e: PointerEvent) => void) | null = null;
+      let clockTimer = 0;
+
+      function initCursor() {
+        if (curRAF) { cancelAnimationFrame(curRAF); curRAF = 0; }
+        if (curMove) { removeEventListener('pointermove', curMove); curMove = null; }
+
+        if (!matchMedia('(pointer: fine)').matches) {
+          document.documentElement.removeAttribute('data-cursor');
+          return;
+        }
+
+        const dot = document.getElementById('cur-dot');
+        const ring = document.getElementById('cur-ring');
+        if (!dot || !ring) return;
+        const label = ring.querySelector('span');
+
+        let x = innerWidth / 2, y = innerHeight / 2;
+        let rx = x, ry = y;
+
+        curMove = (e: PointerEvent) => {
+          x = e.clientX; y = e.clientY;
+          dot.style.transform = `translate(${x}px, ${y}px)`;
+          const hit = (e.target as Element)?.closest?.('[data-cursor], a, button');
+          const kind = hit?.getAttribute('data-cursor') ?? (hit ? 'link' : '');
+          if (document.body.dataset.cur !== kind) document.body.dataset.cur = kind;
+          if (label && (kind === 'drag' || kind === 'view')) label.textContent = kind.toUpperCase();
+        };
+        addEventListener('pointermove', curMove, { passive: true });
+
+        const follow = () => {
+          rx += (x - rx) * 0.18;
+          ry += (y - ry) * 0.18;
+          ring.style.transform = `translate(${rx}px, ${ry}px)`;
+          curRAF = requestAnimationFrame(follow);
+        };
+        // Seed both so nothing sits off-screen before the first move.
+        dot.style.transform = `translate(${x}px, ${y}px)`;
+        ring.style.transform = `translate(${rx}px, ${ry}px)`;
+        document.documentElement.setAttribute('data-cursor', 'live');
+        curRAF = requestAnimationFrame(follow);
+      }
+
+      /* Scroll reveal — used by the text pages. */
+      function initReveal() {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((en) => {
+            if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+          });
+        }, { rootMargin: '0px 0px -8% 0px' });
+        document.querySelectorAll('.rv:not(.in)').forEach((el) => io.observe(el));
+      }
+
+      /* Live Athens clock in the header. */
+      function initClock() {
+        if (clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
+        const el = document.querySelector('[data-athens-clock]');
+        if (!el) return;
+        const fmt = new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          hour12: false, timeZone: 'Europe/Athens',
+        });
+        const draw = () => { el.textContent = `ATHENS, GR — ${fmt.format(new Date())}`; };
+        draw();
+        clockTimer = setInterval(draw, 1000);
+      }
+
+      function boot() { initCursor(); initReveal(); initClock(); }
+      boot();
+      document.addEventListener('astro:page-load', boot);
+    </script>
+  </body>
+</html>

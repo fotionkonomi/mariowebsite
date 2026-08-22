@@ -1,0 +1,498 @@
+/* ============================================================
+   MARIOS KONOMIS — night-at-the-museum design system
+   Dark vitrine: the artwork is the light source.
+
+   Voices:
+     --font-display  Archivo (variable width) — the modern monument
+     --font-carve    Cinzel — the inscription
+     --font-body     Hanken Grotesk — the guide
+   ============================================================ */
+
+/* --- 1. Tokens ------------------------------------------------ */
+:root {
+  --void:   #0A0908;   /* page ground — warm basalt, not pure black */
+  --soot:   #14110E;   /* raised plates */
+  --bone:   #EDE6DA;   /* primary text — marble, not #fff */
+  --ash:    #8A8177;   /* secondary text */
+  --bronze: #C8873A;   /* THE accent — the krater's own metal */
+  --bronze-hot: #E3A75C;
+  --line:   rgba(237, 230, 218, 0.10);
+  --line-strong: rgba(237, 230, 218, 0.22);
+
+  --font-display: 'Archivo Variable', 'Archivo', 'Arial Black', sans-serif;
+  --font-carve:   'Cinzel', 'Times New Roman', serif;
+  --font-body:    'Hanken Grotesk Variable', 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
+
+  --page: 1440px;
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+  --ease-out: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* --- 2. Base --------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--void); scrollbar-color: var(--soot) var(--void); }
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+img { max-width: 100%; height: auto; display: block; }
+a { color: inherit; text-decoration: none; }
+::selection { background: var(--bronze); color: var(--void); }
+
+:focus-visible { outline: 2px solid var(--bronze-hot); outline-offset: 4px; border-radius: 2px; }
+
+.wrap { width: 100%; max-width: var(--page); margin-inline: auto; padding-inline: var(--gutter); }
+.vh {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* --- 3. Type voices -------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.94;
+  letter-spacing: 0.005em;
+  margin: 0;
+}
+.carve {
+  font-family: var(--font-carve);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--bronze);
+}
+.carve--ash { color: var(--ash); }
+
+/* --- 4. Film grain --------------------------------------------- */
+.grain {
+  position: fixed; inset: -40px; z-index: 200;
+  pointer-events: none; opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-jump 0.9s steps(4) infinite;
+}
+@keyframes grain-jump {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-12px, 8px); }
+  50%  { transform: translate(9px, -14px); }
+  75%  { transform: translate(-7px, -6px); }
+  100% { transform: translate(11px, 10px); }
+}
+
+/* --- 5. Custom cursor -------------------------------------------
+   The native cursor is only hidden once JS has confirmed the
+   custom one is running (html[data-cursor="live"]). If the script
+   fails, you keep a real pointer instead of none at all. */
+#cur-dot, #cur-ring {
+  position: fixed; top: 0; left: 0; z-index: 300;
+  pointer-events: none; border-radius: 50%;
+  opacity: 0; transition: opacity 0.25s;
+}
+#cur-dot {
+  width: 9px; height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  background: var(--bronze-hot);
+  box-shadow: 0 0 12px rgba(227, 167, 92, 0.9), 0 0 3px rgba(10, 9, 8, 0.9);
+}
+#cur-ring {
+  width: 34px; height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1.5px solid rgba(227, 167, 92, 0.8);
+  box-shadow: 0 0 14px rgba(200, 135, 58, 0.25), inset 0 0 10px rgba(200, 135, 58, 0.12);
+  display: grid; place-items: center;
+  transition: width 0.28s var(--ease-out), height 0.28s var(--ease-out),
+              margin 0.28s var(--ease-out), background-color 0.28s,
+              border-color 0.28s, opacity 0.25s;
+}
+#cur-ring span {
+  font-family: var(--font-carve);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.18em;
+  color: var(--void); opacity: 0; transition: opacity 0.2s;
+}
+
+@media (pointer: fine) {
+  html[data-cursor='live'] body { cursor: none; }
+  html[data-cursor='live'] a,
+  html[data-cursor='live'] button,
+  html[data-cursor='live'] [data-cursor] { cursor: none; }
+  html[data-cursor='live'] #cur-dot,
+  html[data-cursor='live'] #cur-ring { opacity: 1; }
+
+  body[data-cur='link'] #cur-ring {
+    width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    background: rgba(200, 135, 58, 0.14);
+    border-color: var(--bronze);
+  }
+  body[data-cur='drag'] #cur-ring,
+  body[data-cur='view'] #cur-ring {
+    width: 76px; height: 76px; margin: -38px 0 0 -38px;
+    background: var(--bronze); border-color: var(--bronze);
+  }
+  body[data-cur='drag'] #cur-ring span,
+  body[data-cur='view'] #cur-ring span { opacity: 1; }
+  body[data-cur='drag'] #cur-dot,
+  body[data-cur='view'] #cur-dot { opacity: 0; }
+}
+
+/* --- 6. Header ---------------------------------------------------- */
+.hd {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding-block: 1.1rem;
+  background: linear-gradient(to bottom, rgba(10, 9, 8, 0.85), rgba(10, 9, 8, 0));
+}
+.hd .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+.hd-mark { font-family: var(--font-carve); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.14em; color: var(--bone); }
+.hd-mark em { font-style: normal; color: var(--bronze); }
+.hd-nav { display: flex; gap: 2rem; }
+.hd-nav a {
+  font-family: var(--font-display); font-stretch: 112%; font-weight: 600;
+  font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ash); padding-block: 0.2rem; position: relative; transition: color 0.25s;
+}
+.hd-nav a::after {
+  content: ''; position: absolute; left: 0; right: 100%; bottom: 0;
+  height: 1px; background: var(--bronze); transition: right 0.35s var(--ease-out);
+}
+.hd-nav a:hover, .hd-nav a[aria-current='page'] { color: var(--bone); }
+.hd-nav a:hover::after, .hd-nav a[aria-current='page']::after { right: 0; }
+.hd-meta {
+  font-family: var(--font-carve); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.22em; color: var(--ash); white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .hd-meta { display: none; }
+  .hd-nav { gap: 1.2rem; }
+}
+
+/* ============================================================
+   7. THE STAGE (home page)
+   Default styling below is the FALLBACK: a plain vertical stack
+   that scrolls natively. It is what no-JS, reduced-motion and
+   narrow screens get. JS opts a wide pointer-driven viewport into
+   the pinned two-column stage by setting data-stage-ready on
+   <html>, and every pinned rule is scoped under that attribute.
+   ============================================================ */
+.stage { padding-block: clamp(6.5rem, 15vh, 10rem) clamp(3rem, 8vw, 6rem); }
+
+.stage-intro { text-align: center; max-width: 46ch; margin: 0 auto clamp(2rem, 5vh, 3.5rem); }
+.stage-intro .display { font-size: clamp(2.3rem, 8vw, 5rem); }
+.stage-intro .display em { font-style: normal; color: transparent; -webkit-text-stroke: 1.5px var(--bronze); }
+.stage-intro p { color: var(--ash); margin: 1.2rem 0 0; }
+
+/* The krater. No circle, no border, no clipping — the frame's grey
+   studio backdrop is feathered into the page instead. The object
+   itself runs edge-to-edge vertically (measured: 1%–99.7%) and
+   leaves ~19% of clear backdrop left and right, so the horizontal
+   feather is generous and the vertical one deliberately gentle. */
+.stage-krater { display: grid; place-items: center; }
+.krater {
+  position: relative;
+  width: min(92vw, 620px);
+  aspect-ratio: 1;
+}
+.krater::before {
+  content: '';
+  position: absolute; inset: -18%;
+  background: radial-gradient(ellipse 50% 44% at 50% 50%, rgba(200, 135, 58, 0.17), transparent 72%);
+  pointer-events: none;
+}
+.krater img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  -webkit-mask-image:
+    linear-gradient(to right,  transparent 0%, #000 15%, #000 85%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 7%,  #000 93%, transparent 100%);
+  mask-image:
+    linear-gradient(to right,  transparent 0%, #000 15%, #000 85%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 7%,  #000 93%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  filter: contrast(1.32) brightness(0.92) saturate(1.06);
+}
+
+.stage-rail { margin-top: clamp(2.5rem, 7vh, 5rem); }
+.stage-track { display: grid; gap: clamp(2.5rem, 6vw, 4.5rem); }
+/* The duplicate copy exists only to make the pinned loop seamless. */
+.stage-track > [data-clone] { display: none; }
+
+.panel { max-width: 640px; margin-inline: auto; }
+.panel-media {
+  position: relative; overflow: hidden; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--soot);
+  aspect-ratio: 16 / 10; transition: border-color 0.4s;
+}
+.panel:hover .panel-media { border-color: rgba(200, 135, 58, 0.5); }
+.panel-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s var(--ease-out); }
+.panel:hover .panel-media img { transform: scale(1.04); }
+.panel-num {
+  font-family: var(--font-carve); font-weight: 700;
+  font-size: 0.68rem; letter-spacing: 0.26em; color: var(--bronze);
+  display: block; margin-bottom: 0.7rem;
+}
+.panel-body { padding-top: 1.15rem; }
+.panel-title {
+  font-family: var(--font-display); font-stretch: 118%; font-weight: 750;
+  font-size: clamp(1.3rem, 2.4vw, 2.1rem); line-height: 1.03;
+  text-transform: uppercase; color: var(--bone); margin: 0;
+}
+.panel-sum { color: var(--ash); font-size: 0.95rem; margin: 0.7rem 0 0; max-width: 52ch; }
+.panel-go {
+  display: inline-flex; align-items: center; gap: 0.55rem; margin-top: 1.1rem;
+  font-family: var(--font-carve); font-weight: 600;
+  font-size: 0.64rem; letter-spacing: 0.24em; color: var(--bone);
+}
+.panel-go i {
+  width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-strong);
+  display: grid; place-items: center;
+  transition: background 0.3s, border-color 0.3s, transform 0.45s var(--ease-out), color 0.3s;
+}
+.panel:hover .panel-go i {
+  background: var(--bronze); border-color: var(--bronze);
+  color: var(--void); transform: rotate(45deg);
+}
+
+/* --- 7b. Pinned stage (desktop, JS on, motion allowed) ------------- */
+html[data-stage-ready] body { overflow: hidden; height: 100svh; }
+html[data-stage-ready] .stage {
+  position: fixed; inset: 0; padding: 0; overflow: hidden;
+}
+html[data-stage-ready] .stage-intro {
+  position: absolute; z-index: 3;
+  left: 50%; top: clamp(5rem, 10svh, 8rem);
+  /* max-width from the fallback rule is in ch of the BODY font (~391px)
+     and would wrap the headline; it has to be cleared explicitly. */
+  width: min(1100px, 90vw);
+  max-width: none;
+  margin: 0;
+  transform: translate(-50%, 0);
+  opacity: calc(1 - var(--enter) * 2.4);
+  pointer-events: none;
+}
+/* Two lines, wide enough not to wrap. The supporting sentence is for the
+   scrolling fallback; here the object carries the page instead. */
+html[data-stage-ready] .stage-intro .display { font-size: clamp(1.6rem, 3.3vw, 2.9rem); }
+html[data-stage-ready] .stage-intro p { display: none; }
+html[data-stage-ready] .stage-krater {
+  /* --shift lands the krater centred in the space left of the rail,
+     rather than pushing it off the viewport edge. */
+  --shift: -21vw;
+  position: absolute; z-index: 2;
+  top: 62%; left: 50%;
+  transform: translate(-50%, -50%)
+             translateX(calc(var(--enter) * var(--shift)))
+             translateY(calc(var(--enter) * -6svh))
+             scale(calc(1 + var(--enter) * 0.14));
+  will-change: transform;
+}
+html[data-stage-ready] .krater {
+  width: auto;
+  height: min(62svh, 620px);
+}
+html[data-stage-ready] .stage-rail {
+  position: absolute; z-index: 1;
+  top: 0; right: 0; bottom: 0;
+  width: clamp(360px, 44vw, 720px);
+  margin: 0;
+  overflow: hidden;
+  padding-inline: clamp(1.5rem, 3vw, 3rem);
+  opacity: var(--enter);
+  transform: translateX(calc((1 - var(--enter)) * 5rem));
+  will-change: transform, opacity;
+}
+/* Fade the rail's top and bottom edges so panels enter and leave
+   the viewport instead of being chopped off by the clip. */
+html[data-stage-ready] .stage-rail::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(to bottom, var(--void), transparent 14%),
+    linear-gradient(to top,    var(--void), transparent 14%);
+}
+html[data-stage-ready] .stage-track {
+  display: block; gap: 0;
+  transform: translate3d(0, calc(var(--pan) * -1px), 0);
+  will-change: transform;
+}
+html[data-stage-ready] .stage-track > [data-clone] { display: block; }
+html[data-stage-ready] .panel {
+  height: 100svh;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: clamp(3rem, 9vh, 6rem);
+}
+html[data-stage-ready] .panel-media { aspect-ratio: 16 / 10; flex-shrink: 1; min-height: 0; }
+html[data-stage-ready] .panel-media img { height: 100%; }
+
+/* Scroll cue, pinned mode only */
+.stage-cue {
+  position: absolute; z-index: 4;
+  left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+  display: none; flex-direction: column; align-items: center; gap: 0.5rem;
+  opacity: calc(1 - var(--enter) * 3);
+  pointer-events: none;
+}
+html[data-stage-ready] .stage-cue { display: flex; }
+.stage-cue .carve { font-size: 0.6rem; color: var(--ash); }
+.stage-cue i { width: 1px; height: 42px; background: linear-gradient(var(--bronze), transparent); animation: cue-pulse 2s var(--ease-out) infinite; }
+@keyframes cue-pulse {
+  0%   { transform: scaleY(0); transform-origin: top; }
+  45%  { transform: scaleY(1); transform-origin: top; }
+  55%  { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* Counter — which piece you are on, bottom-left under the krater */
+.stage-count {
+  position: absolute; z-index: 4;
+  left: var(--gutter); bottom: 1.6rem;
+  display: none; align-items: baseline; gap: 0.5rem;
+  font-family: var(--font-carve); font-weight: 700;
+  letter-spacing: 0.2em; color: var(--ash); font-size: 0.7rem;
+  opacity: var(--enter);
+}
+html[data-stage-ready] .stage-count { display: flex; }
+.stage-count b { color: var(--bronze-hot); font-weight: 700; }
+
+/* --- 8. Marquee ------------------------------------------------------ */
+.marquee { border-block: 1px solid var(--line); padding-block: 1.05rem; overflow: hidden; display: flex; }
+.marquee-track {
+  display: flex; flex-shrink: 0; gap: 3.2rem; padding-right: 3.2rem;
+  align-items: center; white-space: nowrap;
+  animation: marquee-roll var(--speed, 26s) linear infinite;
+}
+.marquee-track span {
+  font-family: var(--font-display); font-stretch: 120%; font-weight: 700;
+  font-size: 0.95rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ash); display: inline-flex; align-items: center; gap: 3.2rem;
+}
+.marquee-track span::after { content: '◆'; font-size: 0.55rem; color: var(--bronze); }
+@keyframes marquee-roll { to { transform: translateX(-100%); } }
+
+/* --- 9. Footer -------------------------------------------------------- */
+.ft { border-top: 1px solid var(--line); }
+.ft-bar {
+  padding-block: 1.6rem; display: flex; align-items: center;
+  justify-content: space-between; gap: 1.2rem; flex-wrap: wrap;
+  font-size: 0.82rem; color: var(--ash);
+}
+.ft-bar nav { display: flex; gap: 1.6rem; }
+.ft-bar a { color: var(--ash); transition: color 0.25s; }
+.ft-bar a:hover { color: var(--bronze-hot); }
+.ft-bar .carve { font-size: 0.62rem; }
+
+/* --- 10. Project page -------------------------------------------------- */
+.pj-head { padding-top: clamp(7rem, 14vh, 10rem); padding-bottom: clamp(1.6rem, 4vw, 3rem); }
+.pj-head .carve { display: inline-block; margin-bottom: 1.1rem; }
+.pj-title { font-size: clamp(2rem, 6.4vw, 5.4rem); max-width: 18ch; }
+.pj-summary { max-width: 56ch; color: var(--ash); font-size: 1.08rem; margin: 1.4rem 0 0; }
+.pj-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1.4rem 2.4rem; border-block: 1px solid var(--line);
+  padding-block: 1.5rem; margin-bottom: clamp(1.6rem, 4vw, 2.8rem);
+}
+.pj-facts dt {
+  font-family: var(--font-carve); font-weight: 600; font-size: 0.62rem;
+  letter-spacing: 0.26em; text-transform: uppercase; color: var(--bronze); margin-bottom: 0.45rem;
+}
+.pj-facts dd { margin: 0; font-size: 0.92rem; color: var(--bone); }
+.pj-facts a { border-bottom: 1px solid var(--line-strong); transition: border-color 0.25s, color 0.25s; }
+.pj-facts a:hover { color: var(--bronze-hot); border-color: var(--bronze-hot); }
+
+.pj-plate {
+  border-radius: 4px; overflow: hidden; background: var(--soot);
+  border: 1px solid var(--line); margin-bottom: clamp(1.2rem, 2.6vw, 2rem);
+}
+.pj-plate img { width: 100%; }
+.pj-plate--turn {
+  display: grid; place-items: center; padding: clamp(1.5rem, 4vw, 3rem);
+  background: radial-gradient(ellipse 55% 55% at 50% 50%, rgba(200, 135, 58, 0.08), transparent 72%), var(--soot);
+}
+.pj-plate--turn img { max-width: min(560px, 88%); }
+
+.pj-prose { max-width: 66ch; padding-block: clamp(1.6rem, 4vw, 3rem); }
+.pj-prose p { margin: 0 0 1.25rem; color: color-mix(in srgb, var(--bone) 88%, var(--ash)); }
+.pj-prose h2 {
+  font-family: var(--font-display); font-stretch: 118%; font-weight: 750;
+  font-size: 1.35rem; text-transform: uppercase; margin: 2.4rem 0 1rem;
+}
+.pj-prose a { color: var(--bronze-hot); border-bottom: 1px solid rgba(200, 135, 58, 0.4); }
+
+.pj-nav { border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; }
+.pj-nav a { padding: clamp(2rem, 5vw, 3.4rem) var(--gutter); display: flex; flex-direction: column; gap: 0.7rem; transition: background 0.35s; }
+.pj-nav a:hover { background: var(--soot); }
+.pj-nav a + a { border-left: 1px solid var(--line); text-align: right; align-items: flex-end; }
+.pj-nav .display { font-size: clamp(1.05rem, 2.4vw, 1.8rem); }
+.pj-nav .carve { font-size: 0.6rem; }
+
+/* --- 11. Text pages (About, Contact) ----------------------------------- */
+.page-head { padding-top: clamp(8rem, 16vh, 11rem); }
+.page-head .display { font-size: clamp(2.4rem, 7vw, 6rem); }
+.page-body { max-width: 66ch; padding-block: clamp(2rem, 5vw, 3.4rem) clamp(4rem, 9vw, 7rem); }
+.page-body p { margin: 0 0 1.3rem; color: color-mix(in srgb, var(--bone) 86%, var(--ash)); }
+.page-body h2 {
+  font-family: var(--font-carve); font-weight: 600; font-size: 0.78rem;
+  letter-spacing: 0.3em; text-transform: uppercase; color: var(--bronze); margin: 2.8rem 0 1.1rem;
+}
+.taglist { display: flex; flex-wrap: wrap; gap: 0.55rem; padding: 0; margin: 0; list-style: none; }
+.taglist li {
+  font-size: 0.82rem; color: var(--bone); border: 1px solid var(--line-strong);
+  border-radius: 100px; padding: 0.34rem 0.9rem; transition: border-color 0.3s, color 0.3s;
+}
+.taglist li:hover { border-color: var(--bronze); color: var(--bronze-hot); }
+
+.cta-mail {
+  display: inline-block;
+  font-family: var(--font-display); font-stretch: 116%; font-weight: 650;
+  font-size: clamp(1.05rem, 2.6vw, 1.9rem); letter-spacing: 0.02em;
+  color: var(--bronze-hot); border-bottom: 1px solid rgba(200, 135, 58, 0.4);
+  padding-bottom: 0.3rem; transition: color 0.3s, border-color 0.3s;
+}
+.cta-mail:hover { color: var(--bone); border-color: var(--bone); }
+
+.avail {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  font-family: var(--font-carve); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.26em; color: var(--bone);
+  border: 1px solid var(--line-strong); border-radius: 100px; padding: 0.55rem 1.15rem;
+}
+.avail i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--bronze-hot);
+  box-shadow: 0 0 12px var(--bronze-hot); animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse { 50% { opacity: 0.25; } }
+
+/* --- 12. Scroll reveal -------------------------------------------------- */
+.rv { opacity: 0; transform: translateY(30px); }
+.rv.in {
+  opacity: 1; transform: translateY(0);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+  transition-delay: var(--d, 0s);
+}
+
+/* --- 13. Reduced motion ------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .rv { opacity: 1; transform: none; }
+  .grain { animation: none; }
+  .marquee-track { animation: none; }
+  html { scroll-behavior: auto; }
+}

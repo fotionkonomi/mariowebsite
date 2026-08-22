@@ -1,0 +1,260 @@
+---
+/*
+  The stage: krater left, projects panning up the right rail.
+
+  Two counters drive everything:
+
+    acc   how far in we are, in "units". 0 = krater centred and
+          auto-rotating. 0→1 = krater slides left, rail slides in.
+          Above 1, each whole unit advances one project. Floored at
+          0, never capped above — so N passes down costs N passes up,
+          which is the symmetric unwind, for free.
+
+    spin  only ever increases, by the ABSOLUTE change in acc. That is
+          what makes the krater turn the same direction whether you
+          scroll up or down.
+
+  The page itself never scrolls in pinned mode (body overflow hidden),
+  so there is no native scroll to fight.
+
+  Fallback: everything below is a plain vertical stack that scrolls
+  natively. Pinned mode is opt-in, gated on a wide viewport, a fine
+  pointer and motion being allowed. No JS means the fallback stands.
+*/
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import { roman } from '../lib/roman';
+
+interface Props { projects: CollectionEntry<'projects'>[]; frames: number }
+const { projects, frames } = Astro.props;
+
+// The rail renders the list twice. In pinned mode the second copy is
+// what makes the wrap from the last project back to the first
+// invisible: at the wrap point both copies show identical content.
+const panels = [
+  ...projects.map((p) => ({ p, clone: false })),
+  ...projects.map((p) => ({ p, clone: true })),
+];
+---
+
+<section class="stage" data-stage data-frames={frames} data-count={projects.length}>
+
+  <div class="stage-intro">
+    <p class="carve">Marios Konomis · 3D Artist · Athens</p>
+    <h1 class="display">Ancient Worlds<br />Rendered <em>Live</em></h1>
+    <p>
+      Heritage reconstruction, real-time architecture and stylised environments —
+      modelled in 3ds Max and ZBrush, brought to life in Unreal Engine.
+    </p>
+  </div>
+
+  <div class="stage-krater">
+    <div class="krater">
+      <img
+        src={`/turn/derveni-krater/f00.webp`}
+        width="702" height="702"
+        alt="The Derveni Krater recreation, rotating as you scroll"
+        draggable="false"
+        fetchpriority="high"
+        data-krater
+      />
+    </div>
+  </div>
+
+  <div class="stage-rail">
+    <div class="stage-track" data-track>
+      {panels.map(({ p, clone }, i) => (
+        <a
+          class="panel"
+          href={`/work/${p.id}`}
+          data-clone={clone ? '' : undefined}
+          aria-hidden={clone ? 'true' : undefined}
+          tabindex={clone ? -1 : undefined}
+          data-cursor="view"
+        >
+          <div class="panel-media">
+            <Image
+              src={p.data.hero}
+              alt={p.data.title}
+              widths={[520, 820, 1200]}
+              sizes="(max-width: 860px) 92vw, 44vw"
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          </div>
+          <div class="panel-body">
+            <span class="panel-num">{roman(p.data.year)} · {p.data.year}</span>
+            <h2 class="panel-title">{p.data.title}</h2>
+            <p class="panel-sum">{p.data.summary}</p>
+            <span class="panel-go">View piece <i>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </i></span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <div class="stage-cue" aria-hidden="true"><span class="carve">Scroll</span><i></i></div>
+  <p class="stage-count" aria-hidden="true"><b data-now>I</b> / {roman(projects.length)}</p>
+</section>
+
+<script>
+  const FRAMES_DIR = '/turn/derveni-krater/';
+  const ENTER = 1;          // units spent moving the krater to the left
+  const WHEEL_UNIT = 1100;  // wheel pixels per unit (per project)
+  const AUTO_MS = 100;      // ambient rotation: one frame per 100ms
+  const LERP = 0.11;        // easing toward the target
+  const STALL = 250;        // ms without a frame => treat rAF as throttled
+  const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+
+  let raf = 0;
+  let lastTick = 0;
+  let detach: (() => void) | null = null;
+
+  /* These MediaQueryList objects MUST be retained. Calling
+     matchMedia(q).addEventListener(...) without keeping a reference lets the
+     list be garbage-collected, and the listener silently stops firing —
+     which left the pinned stage active on a phone-width viewport. */
+  let mqls: MediaQueryList[] = [];
+  let boundGlobals = false;
+  let wasPinnable: boolean | null = null;
+
+  const QUERIES = ['(min-width: 861px)', '(pointer: fine)', '(prefers-reduced-motion: reduce)'];
+
+  const pinnableNow = () =>
+    matchMedia(QUERIES[0]).matches &&
+    matchMedia(QUERIES[1]).matches &&
+    !matchMedia(QUERIES[2]).matches;
+
+  /* Switch between the pinned stage and the scrolling fallback when the
+     viewport, pointer or motion preference changes — so resizing a narrow
+     window wide (or back) is handled, not just whatever the page loaded as.
+     resize is the belt to matchMedia's braces. */
+  function bindGlobals() {
+    if (boundGlobals) return;
+    boundGlobals = true;
+    mqls = QUERIES.map((q) => matchMedia(q));
+    const recheck = () => { if (pinnableNow() !== wasPinnable) initStage(); };
+    mqls.forEach((m) => m.addEventListener('change', recheck));
+    addEventListener('resize', recheck);
+  }
+
+  function initStage() {
+    bindGlobals();
+    detach?.();
+    detach = null;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+
+    wasPinnable = pinnableNow();
+    document.documentElement.removeAttribute('data-stage-ready');
+
+    const stage = document.querySelector<HTMLElement>('[data-stage]');
+    if (!stage) return;
+
+    const img = stage.querySelector<HTMLImageElement>('[data-krater]')!;
+    const nowEl = stage.querySelector<HTMLElement>('[data-now]');
+    const total = parseInt(stage.dataset.frames!, 10);
+    const count = parseInt(stage.dataset.count!, 10);
+
+    if (!wasPinnable) return;   // the native-scrolling fallback stands
+    document.documentElement.setAttribute('data-stage-ready', '');
+
+    /* --- frames ------------------------------------------------ */
+    const srcs: string[] = [];
+    for (let i = 0; i < total; i++) srcs.push(`${FRAMES_DIR}f${String(i).padStart(2, '0')}.webp`);
+    let ready = 1;
+    let chain = Promise.resolve();
+    srcs.forEach((src, i) => {
+      if (!i) return;
+      chain = chain.then(() => new Promise<void>((res) => {
+        const im = new Image();
+        im.onload = im.onerror = () => { ready = Math.max(ready, i + 1); res(); };
+        im.src = src;
+      }));
+    });
+
+    /* --- state ------------------------------------------------- */
+    let acc = 0, accS = 0;     // target and smoothed
+    let spin = 0, spinS = 0;   // monotonic rotation
+    let autoAt = 0, autoFrame = 0;
+    let shownFrame = -1;
+    let railH = stage.clientHeight;
+
+    const measure = () => { railH = stage.clientHeight; paint(); };
+    addEventListener('resize', measure);
+
+    const setFrame = (f: number) => {
+      const i = ((f % total) + total) % total;
+      if (i === shownFrame || i >= ready) return;
+      shownFrame = i;
+      img.src = srcs[i];
+    };
+
+    /* Pure DOM write. Called from the loop AND directly on input, so the
+       custom properties are always defined — an undefined var() would
+       invalidate the whole transform and collapse it to none. */
+    const paint = () => {
+      stage.style.setProperty('--enter', String(Math.min(1, accS / ENTER)));
+      const pan = Math.max(0, accS - ENTER);
+      const wrapped = ((pan % count) + count) % count;
+      stage.style.setProperty('--pan', String(wrapped * railH));
+      setFrame(acc === 0 && accS === 0 ? autoFrame : Math.floor(spinS * total));
+      if (nowEl) {
+        const next = ROMAN[Math.floor(wrapped + 0.5) % count] ?? '';
+        if (nowEl.textContent !== next) nowEl.textContent = next;
+      }
+    };
+
+    const push = (dUnits: number) => {
+      const next = Math.max(0, acc + dUnits);
+      spin += Math.abs(next - acc);   // absolute → always turns one way
+      acc = next;
+      // No frames arriving (background tab, low-power mode)? There is no
+      // smoothing to wait for, so land on the target and paint now.
+      if (performance.now() - lastTick > STALL) { accS = acc; spinS = spin; paint(); }
+    };
+
+    /* --- input ------------------------------------------------- */
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); push(e.deltaY / WHEEL_UNIT); };
+    addEventListener('wheel', onWheel, { passive: false });
+
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      switch (e.key) {
+        case 'ArrowDown': push(0.22); break;
+        case 'ArrowUp':   push(-0.22); break;
+        case 'PageDown':  push(1); break;
+        case 'PageUp':    push(-1); break;
+        case 'Home':      push(-acc); break;   // the escape hatch
+        default: return;
+      }
+      e.preventDefault();
+    };
+    addEventListener('keydown', onKey);
+
+    detach = () => {
+      removeEventListener('wheel', onWheel);
+      removeEventListener('keydown', onKey);
+      removeEventListener('resize', measure);
+    };
+
+    /* --- loop -------------------------------------------------- */
+    const tick = (t: number) => {
+      lastTick = t;
+      accS += (acc - accS) * LERP;
+      spinS += (spin - spinS) * LERP;
+      if (Math.abs(acc - accS) < 0.0004) accS = acc;
+      if (Math.abs(spin - spinS) < 0.0004) spinS = spin;
+      // Centred and at rest: ambient rotation, like a resting turntable.
+      if (acc === 0 && accS === 0 && t - autoAt > AUTO_MS && ready > 4) { autoAt = t; autoFrame++; }
+      paint();
+      raf = requestAnimationFrame(tick);
+    };
+    paint();                              // define the vars before first frame
+    raf = requestAnimationFrame(tick);
+  }
+
+  initStage();
+  document.addEventListener('astro:page-load', initStage);
+</script>

@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import Marquee from '../components/Marquee.astro';
+import { site } from '../site';
+---
+
+<Base title="About" description="Marios Konomis is a 3D artist in Athens working in heritage reconstruction, real-time architectural visualisation and stylised environment art.">
+  <div class="wrap">
+    <header class="page-head">
+      <p class="carve rv in">The Artist</p>
+      <h1 class="display rv in" style="--d:.08s">About</h1>
+    </header>
+
+    <article class="page-body">
+      <p class="rv in" style="--d:.14s">
+        I build three-dimensional reconstructions of places and objects — some that
+        still stand, some that haven&rsquo;t for two thousand years, and some that end up
+        printed and held in the hand.
+      </p>
+      <p class="rv">
+        My work runs across three areas that keep feeding each other: digital reconstruction
+        of archaeological subjects, real-time architectural visualisation in Unreal Engine,
+        and stylised environment art for games. My dissertation examined how photorealistic
+        results can be achieved in real-time game engines for use at archaeological sites and
+        monuments — a question I have kept working on since.
+      </p>
+      <p class="rv">
+        Recent work includes an artistic reinterpretation of the Derveni Krater, combining 3D
+        design with traditional techniques, made together with Fine Arts Sculptor Arian
+        Konomis and standing 150&nbsp;cm tall.
+      </p>
+      <p class="rv">Based in {site.location}. {site.availability}</p>
+
+      <h2 class="rv">What I do</h2>
+      <ul class="taglist rv">{site.skills.map((s) => <li>{s}</li>)}</ul>
+
+      <h2 class="rv">Tools</h2>
+      <ul class="taglist rv">{site.software.map((s) => <li>{s}</li>)}</ul>
+
+      <h2 class="rv">Get in touch</h2>
+      <p class="rv">
+        <a class="cta-mail" style="font-size:1.1rem" href={`mailto:${site.email}`}>{site.email}</a>
+        {site.cv && <> &nbsp;·&nbsp; <a class="cta-mail" style="font-size:1.1rem" href={site.cv}>Download CV</a></>}
+      </p>
+    </article>
+  </div>
+  <Marquee items={site.skills} speed="30s" />
+</Base>

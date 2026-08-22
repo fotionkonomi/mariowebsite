@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+*.log
+
+# Source 3D files must never be committed. Git keeps large binaries forever,
+# even after you delete them, so the repo would grow permanently with every
+# revision of every model. Only web-ready output belongs in here.
+*.fbx
+*.blend
+*.blend1
+*.max
+*.ztl
+*.3dm
+*.obj

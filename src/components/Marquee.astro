@@ -1,0 +1,9 @@
+---
+/* An ambient ticker. Two identical tracks make the loop seamless. */
+interface Props { items: string[]; speed?: string }
+const { items, speed = '26s' } = Astro.props;
+---
+<div class="marquee" aria-hidden="true" style={`--speed:${speed}`}>
+  <div class="marquee-track">{items.map((t) => <span>{t}</span>)}</div>
+  <div class="marquee-track">{items.map((t) => <span>{t}</span>)}</div>
+</div>

@@ -1,0 +1,75 @@
+---
+import { getCollection, render } from 'astro:content';
+import { Image } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import { roman } from '../../lib/roman';
+
+export async function getStaticPaths() {
+  const projects = (await getCollection('projects', ({ data }) => !data.draft))
+    .sort((a, b) => a.data.order - b.data.order);
+  return projects.map((project, i) => ({
+    params: { slug: project.id },
+    props: {
+      project,
+      prev: projects[(i - 1 + projects.length) % projects.length],
+      next: projects[(i + 1) % projects.length],
+    },
+  }));
+}
+
+const { project, prev, next } = Astro.props;
+const { Content } = await render(project);
+const d = project.data;
+const SIZES = '(max-width: 1440px) 100vw, 1440px';
+---
+
+<Base title={d.title} description={d.summary}>
+  <div class="wrap">
+    <header class="pj-head">
+      <span class="carve">{roman(d.year)} · {d.year}</span>
+      <h1 class="display pj-title">{d.title}</h1>
+      <p class="pj-summary">{d.summary}</p>
+    </header>
+
+    <dl class="pj-facts">
+      <div><dt>Year</dt><dd>{d.year}</dd></div>
+      {d.software.length > 0 && <div><dt>Software</dt><dd>{d.software.join(', ')}</dd></div>}
+      {d.credits && <div><dt>Credits</dt><dd>{d.credits}</dd></div>}
+      {d.artstation && (
+        <div><dt>Also on</dt><dd><a href={d.artstation} rel="noopener">ArtStation ↗</a></dd></div>
+      )}
+    </dl>
+
+    <figure class="pj-plate rv in">
+      <Image src={d.hero} alt={d.title} widths={[760, 1200, 1800]} sizes={SIZES} loading="eager" transition:name={`work-${project.id}`} />
+    </figure>
+
+    {d.animations.map((clip) => (
+      <figure class="pj-plate pj-plate--turn rv">
+        {/* Animated WebP, served byte-for-byte — the optimiser gains nothing on these. */}
+        <img src={clip.src} width={clip.width} height={clip.height} alt={`${d.title} — rotating view`} loading="lazy" />
+      </figure>
+    ))}
+
+    <div class="pj-prose rv"><Content /></div>
+
+    <div>
+      {d.images.map((image) => (
+        <figure class="pj-plate rv">
+          <Image src={image} alt="" widths={[760, 1200, 1800]} sizes={SIZES} loading="lazy" />
+        </figure>
+      ))}
+    </div>
+  </div>
+
+  <nav class="pj-nav" aria-label="More work">
+    <a href={`/work/${prev.id}`} rel="prev">
+      <span class="carve carve--ash">← Previous</span>
+      <span class="display">{prev.data.title}</span>
+    </a>
+    <a href={`/work/${next.id}`} rel="next">
+      <span class="carve carve--ash">Next →</span>
+      <span class="display">{next.data.title}</span>
+    </a>
+  </nav>
+</Base>
