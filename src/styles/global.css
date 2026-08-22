@@ -225,9 +225,46 @@ a { color: inherit; text-decoration: none; }
 /* The duplicate copy exists only to make the pinned loop seamless. */
 .stage-track > [data-clone] { display: none; }
 
-.panel { max-width: 640px; margin-inline: auto; }
+.panel {
+  position: relative;   /* containing block for .panel-preview */
+  overflow: hidden;     /* clips the blur's soft edges */
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+/* Ambient preview: a heavily blurred copy of the project's hero that fades in
+   behind the card on hover and fills the entire panel. Scaled up so the blur's
+   feathered edges land outside the panel instead of reading as a vignette
+   frame. The sibling selector means the THUMBNAIL is the trigger, not the whole
+   full-height panel — which in pinned mode would fire the moment the pointer
+   entered the rail at all. */
+.panel-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  filter: blur(12px);
+  transform: scale(1.14);
+  transition: opacity 0.55s var(--ease-out);
+  pointer-events: none;
+}
+.panel-media:hover ~ .panel-preview { opacity: 0.25; }
+
+/* At 25% the wash lifts the local background enough to eat into the secondary
+   text: measured, .panel-sum on --ash fell to 3.63:1 on the brightest hero,
+   under the 4.5:1 floor. Rather than dim the wash, the text brightens with it
+   — which also reads as the card lighting up on hover. Sibling selectors
+   again, so .panel-body must stay after .panel-media in the DOM. */
+.panel-media:hover ~ .panel-body .panel-sum {
+  color: color-mix(in srgb, var(--bone) 90%, var(--ash));
+}
+.panel-media:hover ~ .panel-body .panel-num { color: var(--bronze-hot); }
+.panel-body .panel-sum, .panel-body .panel-num { transition: color 0.55s var(--ease-out); }
 .panel-media {
-  position: relative; overflow: hidden; border-radius: 4px;
+  position: relative; z-index: 1; overflow: hidden; border-radius: 4px;
   border: 1px solid var(--line); background: var(--soot);
   aspect-ratio: 16 / 10; transition: border-color 0.4s;
 }
@@ -239,7 +276,7 @@ a { color: inherit; text-decoration: none; }
   font-size: 0.68rem; letter-spacing: 0.26em; color: var(--bronze);
   display: block; margin-bottom: 0.7rem;
 }
-.panel-body { padding-top: 1.15rem; }
+.panel-body { position: relative; z-index: 1; padding-top: 1.15rem; }
 .panel-title {
   font-family: var(--font-display); font-stretch: 118%; font-weight: 750;
   font-size: clamp(1.3rem, 2.4vw, 2.1rem); line-height: 1.03;

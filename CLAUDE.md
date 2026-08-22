@@ -169,6 +169,46 @@ track's 1). It darkens the krater passing through without dimming the panel
 text, and the krater appears to dissolve into the rail's left edge. Increase the
 scale or the nudge further and this scrim is what keeps the copy legible.
 
+**Hover preview.** Hovering a project's thumbnail fades a heavily blurred copy
+of that project's hero in behind the card, at **25%** opacity, filling the whole
+`.panel`. Four things make it work:
+
+- The trigger is `.panel-media:hover ~ .panel-preview`, a **sibling** selector,
+  so the *thumbnail* is the trigger — not the panel, which in pinned mode is a
+  full `100svh` tall and would fire the moment the pointer entered the rail.
+  This requires the preview `<img>` to stay immediately **after** `.panel-media`
+  in the DOM; move it and the selector silently stops matching.
+- `.panel` is `position: relative` (containing block) and `overflow: hidden`,
+  and the preview is `scale(1.14)` so the blur's feathered edges land outside
+  the panel rather than reading as a vignette frame. Content sits at
+  `z-index: 1`, the preview at `0`.
+- The preview is only **420px wide**, with `loading="eager" fetchpriority="low"`.
+  Cover-fitting it into the panel resamples it roughly **5x**, which the blur
+  hides. That is the constraint to watch: at the current **12px** blur it is
+  invisible, but drop below roughly **8px** and the low-resolution source starts
+  to show, at which point the width needs raising too. Eager because a lazy
+  transparent image can be deferred and would then be missing on first hover;
+  low priority so it never competes with the hero images. Total cost is
+  **107KB over 8 requests** (the duplicated clone panels reuse the same URLs).
+
+- At 25% the wash lifts the local background enough to eat into the secondary
+  text. Measured over the region where `.panel-body` sits, `.panel-sum` on
+  `--ash` fell to **3.63:1** on the brightest hero (the Stoa), under the 4.5:1
+  floor, and five of eight projects failed. The fix brightens the text **with**
+  the wash rather than dimming the wash: `.panel-sum` mixes toward `--bone` and
+  `.panel-num` goes to `--bronze-hot` on hover, which restores the worst case to
+  **10.19:1** and **6.58:1** and reads as the card lighting up. If the opacity is
+  raised again, re-check these two — the script for it is a `sharp` cover-resize
+  of each hero, sampled over the text region, composited over `--void`.
+
+Opacity and blur are one value each if they want tuning, but note two couplings:
+opacity to the hover text colours above, and blur to the preview's 420px width.
+
+Contrast was re-verified after the blur came down, using the 95th-percentile
+brightness of the text region rather than its mean (less blur means bright spots
+are no longer smoothed away): worst case **8.40:1** for the summary and
+**5.42:1** for the label. Both still pass.
+
 **The pinned stage is opt-in.** Everything in the CSS is written as a plain
 vertical stack that scrolls natively; JS adds `data-stage-ready` to `<html>`
 only on a wide viewport with a fine pointer and motion allowed, and every pinned

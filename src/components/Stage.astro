@@ -82,6 +82,19 @@ const panels = [
               loading={i === 0 ? 'eager' : 'lazy'}
             />
           </div>
+          {/* Ambient preview. Sits behind the card and fills the whole panel;
+              fades in when the thumbnail is hovered. Decorative, so alt is
+              empty and it is hidden from assistive tech. Only 420px wide
+              because a 28px blur at 10% opacity destroys any more detail. */}
+          <Image
+            class="panel-preview"
+            src={p.data.hero}
+            alt=""
+            aria-hidden="true"
+            width={420}
+            loading="eager"
+            fetchpriority="low"
+          />
           <div class="panel-body">
             <span class="panel-num">{roman(p.data.year)} · {p.data.year}</span>
             <h2 class="panel-title">{p.data.title}</h2>
