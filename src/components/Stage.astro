@@ -24,6 +24,7 @@
 */
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { site } from '../site';
 import { roman } from '../lib/roman';
 import { wallLines } from '../lib/excerpt';
 
@@ -42,8 +43,8 @@ const panels = [
 <section class="stage" data-stage data-frames={frames} data-count={projects.length}>
 
   <div class="stage-intro">
-    <p class="carve">Marios Konomis · 3D Artist · Athens</p>
-    <h1 class="display">Ancient Worlds<br />Rendered <em>Live</em></h1>
+    <p class="carve">{site.location}</p>
+    <h1 class="stage-name">{site.name}<em>{site.role}</em></h1>
     <p>
       Heritage reconstruction, real-time architecture and stylised environments —
       modelled in 3ds Max and ZBrush, brought to life in Unreal Engine.
@@ -133,7 +134,7 @@ const panels = [
   const FRAMES_DIR = '/turn/derveni-krater/';
   const ENTER = 1;          // units spent moving the krater to the left
   const WHEEL_UNIT = 1100;  // wheel pixels per unit (per project)
-  const AUTO_MS = 100;      // ambient rotation: one frame per 100ms
+  const AUTO_MS = 200;      // ambient rotation: one frame per 200ms (~8s a turn)
   const LERP = 0.11;        // easing toward the target
   const STALL = 250;        // ms without a frame => treat rAF as throttled
   const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];

@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import { site } from '../site';
 ---
 
-<Base title="Contact" description={`Contact ${site.name}, 3D artist in ${site.location}. Available for freelance and full-time work.`}>
+<Base title="Contact" description={`Contact ${site.name}, 3D artist in ${site.location}.`}>
   <div class="wrap">
     <header class="page-head" style="text-align:center">
       <p class="carve rv in">Commissions · Collaborations · Studios</p>
@@ -11,8 +11,7 @@ import { site } from '../site';
     </header>
 
     <div class="page-body" style="max-width:none;text-align:center">
-      <p class="rv in" style="--d:.14s">{site.availability} The quickest way to reach me is email.</p>
-      <p class="rv in" style="--d:.2s">
+      <p class="rv in" style="--d:.14s">
         <a class="cta-mail" href={`mailto:${site.email}`}>{site.email}</a>
       </p>
 
@@ -26,7 +25,6 @@ import { site } from '../site';
         ))}
       </p>
 
-      <p class="rv" style="margin-top:3rem"><span class="avail"><i></i>{site.availability}</span></p>
     </div>
   </div>
 </Base>

@@ -188,9 +188,32 @@ a { color: inherit; text-decoration: none; }
 .stage { padding-block: clamp(6.5rem, 15vh, 10rem) clamp(3rem, 8vw, 6rem); }
 
 .stage-intro { text-align: center; max-width: 46ch; margin: 0 auto clamp(2rem, 5vh, 3.5rem); }
-.stage-intro .display { font-size: clamp(2.3rem, 8vw, 5rem); }
-.stage-intro .display em { font-style: normal; color: transparent; -webkit-text-stroke: 1.5px var(--bronze); }
-.stage-intro p { color: var(--ash); margin: 1.2rem 0 0; }
+/* The hero is set in the inscription face, not the monument one: light weight,
+   wide tracking, a chiselled museum plaque rather than a poster. Letter-spacing
+   adds a trailing gap after the last character, which shifts centred text
+   visually left — text-indent of the same amount puts it back on axis. */
+.stage-name {
+  font-family: var(--font-carve);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--bone);
+  margin: 0;
+  font-size: clamp(1.4rem, 5.4vw, 2.5rem);
+  letter-spacing: 0.155em;
+  text-indent: 0.155em;
+  line-height: 1.32;
+}
+.stage-name em {
+  display: block;
+  font-style: normal;
+  font-size: 0.36em;
+  font-weight: 400;
+  letter-spacing: 0.46em;
+  text-indent: 0.46em;
+  color: var(--bronze);
+  margin-top: 1.5em;
+}
+.stage-intro p:not(.carve) { color: var(--ash); margin: 1.2rem 0 0; }
 
 /* The krater. No circle, no border, no clipping — the frame's grey
    studio backdrop is feathered into the page instead. The object
@@ -341,8 +364,11 @@ html[data-stage-ready] .stage-intro {
 }
 /* Two lines, wide enough not to wrap. The supporting sentence is for the
    scrolling fallback; here the object carries the page instead. */
-html[data-stage-ready] .stage-intro .display { font-size: clamp(1.6rem, 3.3vw, 2.9rem); }
-html[data-stage-ready] .stage-intro p { display: none; }
+html[data-stage-ready] .stage-name { font-size: clamp(1.35rem, 3vw, 2.45rem); }
+/* Hide the supporting sentence in pinned mode, but keep the carve eyebrow —
+   :not(.carve) matters, or the location line disappears with it. */
+html[data-stage-ready] .stage-intro p:not(.carve) { display: none; }
+html[data-stage-ready] .stage-intro .carve { margin: 0 0 0.9rem; }
 html[data-stage-ready] .stage-krater {
   /* Entered state: 250% scale with the krater's CENTRE landing on the left
      viewport edge, so exactly half of it is visible bleeding off the left.
@@ -590,18 +616,6 @@ html[data-stage-ready] .stage-count { display: flex; }
   padding-bottom: 0.3rem; transition: color 0.3s, border-color 0.3s;
 }
 .cta-mail:hover { color: var(--bone); border-color: var(--bone); }
-
-.avail {
-  display: inline-flex; align-items: center; gap: 0.6rem;
-  font-family: var(--font-carve); font-size: 0.68rem; font-weight: 600;
-  letter-spacing: 0.26em; color: var(--bone);
-  border: 1px solid var(--line-strong); border-radius: 100px; padding: 0.55rem 1.15rem;
-}
-.avail i {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--bronze-hot);
-  box-shadow: 0 0 12px var(--bronze-hot); animation: live-pulse 1.6s ease-in-out infinite;
-}
-@keyframes live-pulse { 50% { opacity: 0.25; } }
 
 /* --- 12. Scroll reveal -------------------------------------------------- */
 .rv { opacity: 0; transform: translateY(30px); }

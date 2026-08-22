@@ -81,8 +81,18 @@ The site is a dark vitrine: the artwork is the light source. All styling lives i
   `--bronze` the single accent — deliberately the colour of the Derveni Krater
   itself. Do not add more accent colours.
 - Three type voices, each with a job: **Archivo** (variable width, used expanded)
-  for monumental headlines; **Cinzel** for small carved "inscription" labels;
+  for monumental headlines; **Cinzel** for carved "inscription" text;
   **Hanken Grotesk** for body text. Fonts are self-hosted via @fontsource.
+- **The home hero is the one deliberate exception**: it is set in Cinzel 400
+  with wide tracking (`.stage-name`), not the Archivo monument voice, because
+  Archivo 800 at 125% width read as a poster rather than a plaque. It is the
+  artist's name — it should feel chiselled, not shouted. Note the
+  `text-indent` matching the `letter-spacing` on both lines: tracking adds a
+  trailing gap after the last character, which shifts centred text visually
+  off-axis, and the indent puts it back.
+- Careful with `.stage-intro p` selectors: the carve eyebrow is a `<p>` too.
+  Both the colour rule and the pinned `display: none` need `:not(.carve)`, or
+  the location line silently vanishes and loses its bronze.
 - Roman numerals (`src/lib/roman.ts`) appear as engraved ghost numerals on the
   work plates — ornament that encodes the year.
 
@@ -261,9 +271,15 @@ centred a long title (the Stoa wraps to three lines) pushed the caption into
 the wall text. Letting the browser distribute what is left means they cannot
 collide.
 
-**Removed:** the popping supporting-view plates. They were built, then cut on
-request in favour of the cycling wash. If they ever come back, the positions
-have to compose at 0, 1, 2 and 3 images — river-shrine has no extras at all.
+**Removed, deliberately:** the popping supporting-view plates (cut in favour of
+the cycling wash — if they return, the positions must compose at 0, 1, 2 and 3
+images, because river-shrine has no extras at all), and all availability
+messaging on Contact — first the chip, then the sentence itself. The `.avail`
+styles and the `live-pulse` keyframe went with the chip rather than being left
+as dead CSS, and the page's meta description was updated too, so search results
+do not still claim what the page no longer says. The About page keeps its own
+"Based in Athens, Greece. Available for freelance and full-time work." line;
+`site.availability` is still used there.
 
 **The pinned stage is opt-in.** Everything in the CSS is written as a plain
 vertical stack that scrolls natively; JS adds `data-stage-ready` to `<html>`
@@ -281,9 +297,13 @@ is hidden only once the custom one is confirmed running
 (`html[data-cursor="live"]`), so a script failure can never leave the page with
 no visible cursor.
 
-Motion rules: scroll-reveals (`.rv`), marquees, film grain and the cursor are all
-switched off by `prefers-reduced-motion`, which must stay true for anything
-added later.
+Ambient rotation of the krater at rest is `AUTO_MS` — one frame per **200ms**,
+so about 8 seconds for a full turn. Scroll-driven rotation is separate and
+unaffected (one revolution per project).
+
+Motion rules: scroll-reveals (`.rv`), marquees, film grain, the cursor, and the
+hover wash/subtitle cycling are all switched off by `prefers-reduced-motion`,
+which must stay true for anything added later.
 
 ---
 
