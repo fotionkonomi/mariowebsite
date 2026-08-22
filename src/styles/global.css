@@ -226,7 +226,7 @@ a { color: inherit; text-decoration: none; }
 .stage-track > [data-clone] { display: none; }
 
 .panel {
-  position: relative;   /* containing block for .panel-preview */
+  position: relative;   /* containing block for .panel-wash */
   overflow: hidden;     /* clips the blur's soft edges */
   max-width: 640px;
   margin-inline: auto;
@@ -238,30 +238,54 @@ a { color: inherit; text-decoration: none; }
    frame. The sibling selector means the THUMBNAIL is the trigger, not the whole
    full-height panel — which in pinned mode would fire the moment the pointer
    entered the rail at all. */
-.panel-preview {
+/* The blur and the scale sit on the container so the filter is applied once,
+   not per frame. Scaled up so the blur's feathered edges land outside the
+   panel rather than reading as a vignette frame. */
+.panel-wash {
   position: absolute;
   inset: 0;
   z-index: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
   opacity: 0;
-  filter: blur(12px);
+  filter: blur(8px);
   transform: scale(1.14);
   transition: opacity 0.55s var(--ease-out);
   pointer-events: none;
 }
-.panel-media:hover ~ .panel-preview { opacity: 0.25; }
+.panel-wash-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.9s var(--ease-out);
+}
+.panel-wash-frame.is-on { opacity: 1; }
+
+.panel-plate:hover ~ .panel-wash { opacity: 0.3; }
+
+/* ---- Gallery wall text ------------------------------------------------
+   Sits low in the panel, in the dark gap before the next project. Only in
+   pinned mode; the scrolling fallback is a plain stack and does not need it.
+   ---------------------------------------------------------------------- */
+.panel-plate { position: relative; z-index: 1; }
+
+.panel-wall { display: none; }
 
 /* At 25% the wash lifts the local background enough to eat into the secondary
    text: measured, .panel-sum on --ash fell to 3.63:1 on the brightest hero,
    under the 4.5:1 floor. Rather than dim the wash, the text brightens with it
    — which also reads as the card lighting up on hover. Sibling selectors
    again, so .panel-body must stay after .panel-media in the DOM. */
-.panel-media:hover ~ .panel-body .panel-sum {
+.panel-plate:hover ~ .panel-body .panel-sum {
   color: color-mix(in srgb, var(--bone) 90%, var(--ash));
 }
-.panel-media:hover ~ .panel-body .panel-num { color: var(--bronze-hot); }
+/* Lifted past plain --bronze-hot: measured across all 28 wash frames, the
+   brightest one (unreal-archviz/screenshot00010) put the label at 4.49:1,
+   a hair under the 4.5:1 floor for text this size. */
+.panel-plate:hover ~ .panel-body .panel-num {
+  color: color-mix(in srgb, var(--bronze-hot) 76%, var(--bone));
+}
 .panel-body .panel-sum, .panel-body .panel-num { transition: color 0.55s var(--ease-out); }
 .panel-media {
   position: relative; z-index: 1; overflow: hidden; border-radius: 4px;
@@ -279,10 +303,10 @@ a { color: inherit; text-decoration: none; }
 .panel-body { position: relative; z-index: 1; padding-top: 1.15rem; }
 .panel-title {
   font-family: var(--font-display); font-stretch: 118%; font-weight: 750;
-  font-size: clamp(1.3rem, 2.4vw, 2.1rem); line-height: 1.03;
+  font-size: clamp(1.5rem, 2.9vw, 2.75rem); line-height: 1.02;
   text-transform: uppercase; color: var(--bone); margin: 0;
 }
-.panel-sum { color: var(--ash); font-size: 0.95rem; margin: 0.7rem 0 0; max-width: 52ch; }
+.panel-sum { color: var(--ash); font-size: 1.02rem; margin: 0.8rem 0 0; max-width: 54ch; }
 .panel-go {
   display: inline-flex; align-items: center; gap: 0.55rem; margin-top: 1.1rem;
   font-family: var(--font-carve); font-weight: 600;
@@ -354,7 +378,7 @@ html[data-stage-ready] .krater {
 html[data-stage-ready] .stage-rail {
   position: absolute; z-index: 3;
   top: 0; right: 0; bottom: 0;
-  width: clamp(360px, 44vw, 720px);
+  width: clamp(420px, 58vw, 980px);
   margin: 0;
   overflow: hidden;
   padding-inline: clamp(1.5rem, 3vw, 3rem);
@@ -375,8 +399,8 @@ html[data-stage-ready] .stage-track { position: relative; z-index: 1; }
 html[data-stage-ready] .stage-rail::after {
   content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background:
-    linear-gradient(to bottom, var(--void), transparent 14%),
-    linear-gradient(to top,    var(--void), transparent 14%);
+    linear-gradient(to bottom, var(--void), transparent 8%),
+    linear-gradient(to top,    var(--void), transparent 8%);
 }
 html[data-stage-ready] .stage-track {
   display: block; gap: 0;
@@ -384,17 +408,62 @@ html[data-stage-ready] .stage-track {
   will-change: transform;
 }
 html[data-stage-ready] .stage-track > [data-clone] { display: block; }
+/* Three rows: the plate, the caption, and the dark gap. The gap is a 1fr
+   row rather than a reserved pixel value, so the browser distributes what is
+   left and the wall text can never collide with the caption above it —
+   which it did when both were centred and a long title wrapped to 3 lines. */
 html[data-stage-ready] .panel {
   height: 100svh;
   max-width: none;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-block: clamp(3rem, 9vh, 6rem);
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  align-content: start;
+  row-gap: clamp(0.75rem, 2.2vh, 1.75rem);
+  padding-block: clamp(3.5rem, 9vh, 6rem) clamp(2.5rem, 7.5vh, 4.5rem);
 }
-html[data-stage-ready] .panel-media { aspect-ratio: 16 / 10; flex-shrink: 1; min-height: 0; }
+/* A wider, shorter crop than the fallback's 16:10 — it suits the arch-viz
+   renders and frees the lower third of the panel for the wall text. */
+html[data-stage-ready] .panel-media { aspect-ratio: 2.3 / 1; max-height: 42svh; min-height: 0; }
 html[data-stage-ready] .panel-media img { height: 100%; }
+
+html[data-stage-ready] .panel-wall {
+  display: block;
+  align-self: end;      /* sits at the bottom of the gap row */
+  margin: 0;
+  max-width: 56ch;
+  font-size: clamp(1.12rem, 1.6vw, 1.5rem);
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--ash) 82%, var(--void));
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+  transition-delay: 0.16s;
+  pointer-events: none;
+}
+html[data-stage-ready] .panel-wall::before {
+  content: '';
+  display: block;
+  width: 46px; height: 1px;
+  background: var(--bronze);
+  opacity: 0.85;
+  margin-bottom: 0.85rem;
+}
+html[data-stage-ready] .panel-plate:hover ~ .panel-wall { opacity: 1; transform: none; }
+
+/* Subtitle lines are stacked in one place and crossfaded, so the block never
+   reflows as sentences of different length replace each other. The container
+   therefore has no content height of its own and needs a reserved one. */
+html[data-stage-ready] .panel-wall { position: relative; min-height: calc(1.45em * 3); }
+html[data-stage-ready] .panel-line {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out);
+}
+html[data-stage-ready] .panel-line.is-on { opacity: 1; transform: none; }
 
 /* Scroll cue, pinned mode only */
 .stage-cue {

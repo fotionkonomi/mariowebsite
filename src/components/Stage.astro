@@ -25,6 +25,7 @@
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import { roman } from '../lib/roman';
+import { wallLines } from '../lib/excerpt';
 
 interface Props { projects: CollectionEntry<'projects'>[]; frames: number }
 const { projects, frames } = Astro.props;
@@ -73,28 +74,34 @@ const panels = [
           tabindex={clone ? -1 : undefined}
           data-cursor="view"
         >
-          <div class="panel-media">
-            <Image
-              src={p.data.hero}
-              alt={p.data.title}
-              widths={[520, 820, 1200]}
-              sizes="(max-width: 860px) 92vw, 44vw"
-              loading={i === 0 ? 'eager' : 'lazy'}
-            />
+          <div class="panel-plate">
+            <div class="panel-media">
+              <Image
+                src={p.data.hero}
+                alt={p.data.title}
+                widths={[640, 1000, 1500]}
+                sizes="(max-width: 860px) 92vw, 58vw"
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+            </div>
           </div>
-          {/* Ambient preview. Sits behind the card and fills the whole panel;
-              fades in when the thumbnail is hovered. Decorative, so alt is
-              empty and it is hidden from assistive tech. Only 420px wide
-              because a 28px blur at 10% opacity destroys any more detail. */}
-          <Image
-            class="panel-preview"
-            src={p.data.hero}
-            alt=""
-            aria-hidden="true"
-            width={420}
-            loading="eager"
-            fetchpriority="low"
-          />
+          {/* Ambient wash behind the card, filling the whole panel. A stack of
+              frames rather than one image: on hover it steps through this
+              project's own pictures every 2s. Frame 0 is eager so the first
+              hover is instant; the rest are lazy — they have 2s of warning,
+              and the hover handler promotes them anyway. */}
+          <div class="panel-wash" aria-hidden="true">
+            {[p.data.hero, ...p.data.images.slice(0, 3)].map((img, n) => (
+              <Image
+                class:list={['panel-wash-frame', { 'is-on': n === 0 }]}
+                src={img}
+                alt=""
+                width={560}
+                loading={n === 0 ? 'eager' : 'lazy'}
+                fetchpriority={n === 0 ? 'low' : undefined}
+              />
+            ))}
+          </div>
           <div class="panel-body">
             <span class="panel-num">{roman(p.data.year)} · {p.data.year}</span>
             <h2 class="panel-title">{p.data.title}</h2>
@@ -103,6 +110,16 @@ const panels = [
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg>
             </i></span>
           </div>
+          {/* Subtitle track, in the dark gap before the next project: the
+              write-up played one sentence at a time. Every line is in the DOM
+              with only the active one shown, so a crossfade is pure CSS and
+              nothing has to be parsed at runtime. Decorative duplication —
+              the full text lives on the project page. */}
+          <p class="panel-wall" aria-hidden="true">
+            {wallLines(p.body, p.data.summary).map((line, n) => (
+              <span class:list={['panel-line', { 'is-on': n === 0 }]}>{line}</span>
+            ))}
+          </p>
         </a>
       ))}
     </div>
@@ -280,6 +297,86 @@ const panels = [
     raf = requestAnimationFrame(tick);
   }
 
+  /* ------------------------------------------------------------------
+     Hover: step the wash through this project's pictures every 2s, and
+     play the write-up one sentence at a time like a subtitle track.
+
+     Subtitle dwell is derived from length rather than fixed, so a long
+     sentence is not yanked away before it can be read (~15 chars/sec plus
+     a fixed beat). The wash runs on its own 2s clock — decoupled on
+     purpose, the way shots change faster than dialogue.
+  ------------------------------------------------------------------ */
+  const WASH_MS = 2000;
+  let hoverOff: Array<() => void> = [];
+
+  function initHover() {
+    hoverOff.forEach((fn) => fn());
+    hoverOff = [];
+
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    document.querySelectorAll<HTMLElement>('.panel').forEach((panel) => {
+      const plate = panel.querySelector<HTMLElement>('.panel-plate');
+      if (!plate) return;
+      const frames = [...panel.querySelectorAll<HTMLImageElement>('.panel-wash-frame')];
+      const lines = [...panel.querySelectorAll<HTMLElement>('.panel-line')];
+
+      let wash = 0;
+      let sub = 0;
+      let fi = 0;
+      let li = 0;
+
+      const show = (els: Element[], i: number) =>
+        els.forEach((el, n) => el.classList.toggle('is-on', n === i));
+
+      /* Paced by length so a long line is not yanked away before it can be
+         read. Lines are pre-chunked to ~112 chars, which lands every subtitle
+         between 2.4s and 5.4s — roughly 17-21 characters a second.
+         textContent is trimmed because the template indents it, and the raw
+         string was inflating the dwell by around 700ms. */
+      const dwell = (el: HTMLElement) =>
+        Math.min(5400, Math.max(2400, 1000 + el.textContent!.trim().length * 46));
+
+      const nextLine = () => {
+        li = (li + 1) % lines.length;
+        show(lines, li);
+        sub = window.setTimeout(nextLine, dwell(lines[li]));
+      };
+
+      const enter = () => {
+        fi = 0; li = 0;
+        show(frames, 0); show(lines, 0);
+        if (still) return;                       // static first frame and line
+        // The later frames are lazy; make sure they are on their way before
+        // the first swap lands.
+        frames.forEach((f) => { if (f.loading === 'lazy') f.loading = 'eager'; });
+        if (frames.length > 1) {
+          wash = window.setInterval(() => {
+            fi = (fi + 1) % frames.length;
+            show(frames, fi);
+          }, WASH_MS);
+        }
+        if (lines.length > 1) sub = window.setTimeout(nextLine, dwell(lines[0]));
+      };
+
+      const leave = () => {
+        clearInterval(wash); clearTimeout(sub);
+        wash = 0; sub = 0;
+        fi = 0; li = 0;
+        show(frames, 0); show(lines, 0);
+      };
+
+      plate.addEventListener('pointerenter', enter);
+      plate.addEventListener('pointerleave', leave);
+      hoverOff.push(() => {
+        plate.removeEventListener('pointerenter', enter);
+        plate.removeEventListener('pointerleave', leave);
+        clearInterval(wash); clearTimeout(sub);
+      });
+    });
+  }
+
   initStage();
-  document.addEventListener('astro:page-load', initStage);
+  initHover();
+  document.addEventListener('astro:page-load', () => { initStage(); initHover(); });
 </script>

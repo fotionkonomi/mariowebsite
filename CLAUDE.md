@@ -209,6 +209,62 @@ brightness of the text region rather than its mean (less blur means bright spots
 are no longer smoothed away): worst case **8.40:1** for the summary and
 **5.42:1** for the label. Both still pass.
 
+**Hover (the subtitle track).** Hovering a project does three things at once,
+all driven from `initHover()` in `Stage.astro`:
+
+- **The wash cycles.** `.panel-wash` holds up to four frames — the hero plus
+  three of the project's own images — and steps through them every **2s**. The
+  frames are stacked and crossfaded via an `is-on` class, so nothing is fetched
+  mid-animation. Frame 0 is eager (instant first hover); the rest are lazy and
+  the handler promotes them on enter, well before the first swap. Verified
+  timing: 1998 / 1999 / 2001 ms.
+- **The write-up plays as subtitles**, one line at a time. Every line is in the
+  DOM with only the active one shown, so the crossfade is pure CSS and nothing
+  is parsed at runtime. The lines are absolutely stacked with a reserved
+  `min-height`, so the block never reflows as sentences of different length
+  replace each other.
+- **Dwell is derived from length**, not fixed: `1000ms + 46ms per character`,
+  clamped to 2.4–5.4s. Note `textContent` is **trimmed** first — the template
+  indents it, and the raw string was inflating every dwell by about 700ms.
+
+`src/lib/excerpt.ts` builds the track, and two decisions there matter:
+
+- **Leading filler is dropped.** The write-ups open with throat-clearing
+  ("After a while, it's finally time to update my portfolio", "This project was
+  made as part of a college exercise") and the first subtitle is the one
+  everybody reads. Everything from the first substantial sentence onward is kept
+  in original order, so it still reads as the artist wrote it.
+- **Long sentences are chunked at ~112 chars**, preferring clause breaks. This
+  is not cosmetic: the Stoa's opening sentence is 186 characters, which at a
+  comfortable ~15 chars/sec needs about 12 seconds on screen — long enough that
+  the next line never arrives. Chunking lands every line at 17–21 chars/sec.
+
+Blur is **8px** and opacity **0.30**. Because the wash now cycles through
+different images, contrast was re-verified across **all 28 wash frames**, not
+just the heroes: worst summary **6.96:1**, worst label **5.12:1**. The label
+needed lifting past plain `--bronze-hot` to get there — one frame of
+unreal-archviz put it at 4.49:1, a hair under the floor. Raise the opacity
+again and this needs re-running.
+
+The hover trigger is `.panel-plate:hover`, with `.panel-wash`, `.panel-body`
+and `.panel-wall` all targeted as **following siblings** of it. Reordering
+those children silently breaks all three at once.
+
+The rail is **58vw**, which still clears the krater's bronze by 117px at 1440 —
+the object ends at 78% of its frame, so the rail only overlaps the dark
+feathered surround. The rail's edge fade is 8%, down from 14%, which had been
+dimming the wall text.
+
+**The panel is a 3-row grid** (`auto auto 1fr`) — plate, caption, gap. The gap
+is a `1fr` row rather than a reserved pixel value, because when both were
+centred a long title (the Stoa wraps to three lines) pushed the caption into
+the wall text. Letting the browser distribute what is left means they cannot
+collide.
+
+**Removed:** the popping supporting-view plates. They were built, then cut on
+request in favour of the cycling wash. If they ever come back, the positions
+have to compose at 0, 1, 2 and 3 images — river-shrine has no extras at all.
+
 **The pinned stage is opt-in.** Everything in the CSS is written as a plain
 vertical stack that scrolls natively; JS adds `data-stage-ready` to `<html>`
 only on a wide viewport with a fine pointer and motion allowed, and every pinned
